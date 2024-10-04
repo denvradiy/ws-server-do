@@ -9,9 +9,14 @@ const app = express();
 app.use(cors());  // Allow all origins by default
 app.use(express.json());  // To parse JSON request bodies
 
+const server = app.listen(PORT, () => console.log(`Listening on ${PORT}`));
+
+const wss = new Server({server});
+
+let message = new Date().toTimeString()
+
 app.post('/update-message', (req, res) => {
   const {mswa} = req.body;
-  message = mswa;
 
   wss.clients.forEach(client => {
     if (client.readyState === OPEN) {
@@ -24,27 +29,12 @@ app.post('/update-message', (req, res) => {
 
 app.use((req, res) => res.sendFile(INDEX, {root: __dirname}));
 
-const server = app.listen(PORT, () => console.log(`Listening on ${PORT}`));
-
-const wss = new Server({server});
-
-let message = "Default message";
-
 wss.on('connection', (ws) => {
   ws.send(message);
-
-  ws.on('message', (data) => {
-    message = data;
-    wss.clients.forEach(client => {
-      if (client.readyState === OPEN) {
-        client.send(message);
-      }
-    });
-  });
 });
 
 setInterval(() => {
   wss.clients.forEach((client) => {
     client.send(new Date().toTimeString());
   });
-}, 1000);
+}, 7000);
