@@ -1,0 +1,18 @@
+config:
+  target: 'ws://next-client-check.com'  # Replace with your WebSocket server URL
+  phases:
+    - duration: 60            # Test duration in seconds
+      arrivalRate: 1000       # Number of new connections per second
+      rampTo: 1000            # Ramp up to 1000 users
+
+scenarios:
+  - engine: "ws"
+    flow:
+      - send:
+          text: '{"type": "hello", "message": "Hello, WebSocket!"}' # Replace with your message format
+      - think: 1                # Wait for 1 second before the next message
+      - send:
+          text: '{"type": "ping"}' # Replace with your ping message if needed
+      - think: 1
+      - send:
+          text: '{"type": "disconnect"}' # Message to disconnect, if needed
