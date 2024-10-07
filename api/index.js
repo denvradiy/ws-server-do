@@ -42,7 +42,7 @@ wss.on('connection', (ws) => {
   clients.set(ws, clientMeta);
 
   // Send the initial message upon connection
-  ws.send(JSON.stringify({ message }));
+  ws.send(message);
 
   // Set up ping-pong to detect dead connections
   ws.isAlive = true;
