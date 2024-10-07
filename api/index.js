@@ -81,9 +81,10 @@ const broadcast = (data) => {
 
 // Periodically send the current time to all connected clients
 setInterval(() => {
-  const timeMessage = new Date().toTimeString();
-  broadcast({ time: timeMessage });
-}, BROADCAST_INTERVAL_MS);
+  wss.clients.forEach((client) => {
+    client.send(new Date().toTimeString());
+  });
+}, 1000);
 
 // Clean up idle connections and implement heartbeat
 const cleanUpConnections = setInterval(() => {
