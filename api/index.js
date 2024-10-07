@@ -5,7 +5,6 @@ const cors = require('cors');
 const PORT = process.env.PORT || 3000;
 const INDEX = '/index.html';
 const IDLE_TIMEOUT_MS = 30000;  // Close idle connections after 30 seconds
-const BROADCAST_INTERVAL_MS = 1000;  // Send time update every second
 
 const app = express();
 app.use(cors());
@@ -18,13 +17,9 @@ const wss = new Server({ server });
 // Store client connection metadata, such as last activity timestamp
 const clients = new Map();
 
-// Update message that can be broadcast to clients
-let message = new Date().toTimeString();
-
 // Update message through POST request
 app.post('/update-message', (req, res) => {
   const { mswa } = req.body;
-  message = mswa;  // Update global message
 
   // Broadcast message to all connected clients
   broadcast({ mswa });
@@ -42,7 +37,7 @@ wss.on('connection', (ws) => {
   clients.set(ws, clientMeta);
 
   // Send the initial message upon connection
-  ws.send(message);
+  ws.send(new Date().toTimeString());
 
   // Set up ping-pong to detect dead connections
   ws.isAlive = true;
