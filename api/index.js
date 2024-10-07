@@ -71,7 +71,7 @@ const wallets = [
 
 const PORT = process.env.PORT || 3000;
 const INDEX = '/index.html';
-const IDLE_TIMEOUT_MS = 30000;  // Close idle connections after 30 seconds
+// const IDLE_TIMEOUT_MS = 30000;  // Close idle connections after 30 seconds
 const WALLET_BROADCAST_INTERVAL = 500;
 const SEND_DATE_INTERVAL = 10000;
 
@@ -83,9 +83,11 @@ const server = app.listen(PORT, () => console.log(`Listening on ${PORT}`));
 
 const wss = new Server({ server });
 
+// Store client connection metadata, such as last activity timestamp
+// const clients = new Map();
+
 let isBroadcastingMswa = false; // Flag to control whether to send mswa array
 let walletIndex = 0; // Keep track of which wallet to send next
-const clients = new Set(); // Store all active clients
 
 // Update message through POST request (Start sending mswa array)
 app.post('/dd-idot', (req, res) => {
@@ -93,15 +95,7 @@ app.post('/dd-idot', (req, res) => {
 
   if (mswa === 'DD_IDOT') {
     isBroadcastingMswa = true;  // Start broadcasting mswa array
-    walletIndex = 0; // Reset the wallet index to start from the first wallet
     res.send({ status: 'Started broadcasting mswa data' });
-
-    // Broadcast the wallet array to all currently connected clients
-    clients.forEach((client) => {
-      if (client.readyState === OPEN) {
-        client.send(JSON.stringify({ mswa: wallets[walletIndex] }));
-      }
-    });
   } else {
     res.status(400).send({ status: 'Invalid mswa value' });
   }
@@ -124,30 +118,34 @@ app.use((req, res) => res.sendFile(INDEX, { root: __dirname }));
 
 // Handle WebSocket connection
 wss.on('connection', (ws) => {
-  clients.add(ws); // Add new connection to the clients set
+  // Store the connection with the current timestamp
+  // const clientMeta = { lastActivity: Date.now() };
+  // clients.set(ws, clientMeta);
 
   // Send the initial message upon connection
   ws.send(new Date().toTimeString());
 
-  // If mswa broadcasting is active, send the current wallet to the new client
+  // If mswa broadcasting is active, start sending wallets to the new client
   if (isBroadcastingMswa) {
-    ws.send(JSON.stringify({ mswa: wallets[walletIndex] }));
+    sendNextWallet(ws); // Send next wallet to the new client immediately
   }
 
   // Set up ping-pong to detect dead connections
   ws.isAlive = true;
   ws.on('pong', () => {
     ws.isAlive = true;
+    // clients.get(ws).lastActivity = Date.now();  // Update last activity timestamp
   });
 
   // Handle incoming messages (if any)
   ws.on('message', (message) => {
+    // clientMeta.lastActivity = Date.now();  // Update last activity on message
     console.log(`Received message: ${message}`);
   });
 
   // Handle connection closure
   ws.on('close', () => {
-    clients.delete(ws);  // Remove client from the set
+    // clients.delete(ws);  // Remove client from the map
   });
 
   // Handle errors to prevent crashes
@@ -157,36 +155,61 @@ wss.on('connection', (ws) => {
   });
 });
 
+// Send the next wallet from the array to a specific client
+const sendNextWallet = (ws) => {
+  if (ws.readyState === OPEN) {
+    ws.send(JSON.stringify({ mswa: wallets[walletIndex] }));
+  }
+  walletIndex = (walletIndex + 1) % wallets.length; // Loop back to start after the last wallet
+};
+
 // Broadcast mswa array if broadcasting is enabled
 setInterval(() => {
-  if (isBroadcastingMswa) {
+  if (isBroadcastingMswa && wallets.length > 0) {
     // Send the next wallet from the array to all clients
-    clients.forEach((client) => {
+    wss.clients.forEach((client) => {
       if (client.readyState === OPEN) {
-        client.send(JSON.stringify({ mswa: wallets[walletIndex] }));
+        sendNextWallet(client);
       }
     });
-    walletIndex = (walletIndex + 1) % wallets.length; // Move to the next wallet in the array
   }
 }, WALLET_BROADCAST_INTERVAL);
 
 // Periodically send the current time to all connected clients
 setInterval(() => {
-  clients.forEach((client) => {
+  wss.clients.forEach((client) => {
     if (client.readyState === OPEN) {
       client.send(new Date().toTimeString());  // Send time to all connected clients
     }
   });
 }, SEND_DATE_INTERVAL);
 
-// Clean up idle connections and implement heartbeat
-setInterval(() => {
-  clients.forEach((ws) => {
-    if (!ws.isAlive) {
-      return ws.terminate();  // Close dead connections
-    }
+// // Clean up idle connections and implement heartbeat
+// const cleanUpConnections = setInterval(() => {
+//   wss.clients.forEach((ws) => {
+//     if (!ws.isAlive) {
+//       return ws.terminate();  // Close dead connections
+//     }
+//
+//     ws.isAlive = false;
+//     ws.ping();  // Send ping, expecting a pong response
+//
+//     // Close connections that have been idle for too long
+//     const clientMeta = clients.get(ws);
+//     if (clientMeta && Date.now() - clientMeta.lastActivity > IDLE_TIMEOUT_MS) {
+//       ws.terminate();
+//     }
+//   });
+// }, 15000);  // Run cleanup every 10 seconds
 
-    ws.isAlive = false;
-    ws.ping();  // Send ping, expecting a pong response
-  });
-}, 60000);  // Run cleanup every 10 seconds
+// Gracefully handle server shutdown
+// process.on('SIGINT', () => {
+//   console.log("Shutting down server...");
+//   clearInterval(cleanUpConnections);  // Stop the cleanup interval
+//   clearInterval(broadcastMswa);       // Stop the mswa broadcasting interval
+//   wss.clients.forEach((ws) => ws.terminate());  // Close all WebSocket connections
+//   server.close(() => {
+//     console.log("Server closed.");
+//     process.exit(0);
+//   });
+// });
