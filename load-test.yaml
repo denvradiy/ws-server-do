@@ -1,5 +1,5 @@
 config:
-  target:  'wss://next-client-check.com/'  # URL вашего WebSocket сервера
+  target:  'wss://ws-server-heroku-app-a6c9be49c9e2.herokuapp.com/'  # URL вашего WebSocket сервера
   phases:
     - duration: 60  # Первая фаза — 60 секунд
       arrivalRate: 100  # Открываем 167 соединений в секунду

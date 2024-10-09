@@ -2,7 +2,7 @@ import { check, sleep } from 'k6';
 import ws from 'k6/ws';
 
 export default function () {
-  const url = 'wss://next-client-check.com/'; // Replace with your WebSocket server URL
+  const url = 'ws://161.35.194.238:83/'; // Replace with your WebSocket server URL
   const response = ws.connect(url, {}, function (socket) {
     socket.on('open', function () {
       console.log('Connected to WebSocket server');
@@ -15,7 +15,7 @@ export default function () {
       });
 
       // // Hold the connection for 3 minutes (180 seconds)
-      sleep(15);
+      sleep(60);
       //
       socket.close(); // Close connection after the hold time
     });
@@ -38,7 +38,7 @@ export default function () {
 export let options = {
   stages: [
     { duration: '1m', target: 5000 }, // Ramp up to 5000 users in 1 minute
-    { duration: '15s', target: 5000 },  // Hold 5000 users for 3 minutes
+    { duration: '1m', target: 5000 },  // Hold 5000 users for 3 minutes
     { duration: '1m', target: 0 },     // Ramp down to 0 users in 1 minute
   ],
 };
