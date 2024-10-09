@@ -1,6 +1,9 @@
 # Используем образ node:10-alpine
 FROM node:10-alpine
 
+# Устанавливаем зависимости для сборки нативных модулей
+RUN apk add --no-cache python2 make g++ bash
+
 # Создаем директорию для приложения
 RUN mkdir -p /home/node/app && chown -R node:node /home/node/app
 
