@@ -122,6 +122,8 @@ wss.on('connection', (ws) => {
   // const clientMeta = { lastActivity: Date.now() };
   // clients.set(ws, clientMeta);
 
+  console.log(`ACTIVE CONNECTIONS====: ${wss.clients.size}`);
+
   // Send the initial message upon connection
   ws.send(new Date().toTimeString());
 

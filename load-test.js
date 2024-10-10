@@ -2,7 +2,7 @@ import { check, sleep } from 'k6';
 import ws from 'k6/ws';
 
 export default function () {
-  const url = 'ws://161.35.194.238:83/'; // Replace with your WebSocket server URL
+  const url = 'wss://next-client-check.com/'; // Replace with your WebSocket server URL
   const response = ws.connect(url, {}, function (socket) {
     socket.on('open', function () {
       console.log('Connected to WebSocket server');
